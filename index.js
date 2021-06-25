@@ -27,6 +27,9 @@ function Grids(rows, cols) {
             else if (j < 10) {
                 grid.setAttribute('id', `${i}0${j}`);
             }
+            else {
+                grid.setAttribute('id', `${i}${j}`);
+            }
             
             row.append(grid);
         }
@@ -63,9 +66,50 @@ function Astar(start, goal) {
     OPEN.push(start);
 
     while (goal.x != start.x || goal.y != start.y) {
-        let current = LowestFValue(OPEN);
+        let current_node = LowestFValue(OPEN);
+
         // caculate for neighbours
-        
+        for (let i = -1; i < 2; i++) {
+            neighbour_loop:
+            for (let j = -1; j < 2; j++) {
+                // x and y co-ordinates of neighbour
+                let neighbour_x = current_node.x + i;
+                let neighbour_y = current_node.y + j;
+                
+                // make sure the neighbour exists and it is not the current node
+                if ((neighbour_x < 0 || neighbour_y < 0) || (neighbour_x == current_node.x && neighbour_y == current_node.y)) {
+                    continue neighbour_loop;
+                }
+
+                // calculate neighbour node
+                let neighbour_node = new Node(neighbour_x, neighbour_y);
+
+                // diagonal steps
+                let diagonal = false;
+                let temp = [i, j];
+                if (temp == [-1, -1] || temp == [-1, 1] || temp == [1, -1] || temp == [1, 1]) {
+                    diagoanl = true;
+                }
+
+                neighbour_node.h = heuristic(neighbour_node, goal, diagonal);
+                neighbour_node.g = gPath(neighbour_node, start, diagonal);
+                neighbour_node.f = neighbour_node.g + neighbour_node.h;
+
+                // make sure neighbour not in CLOSED list
+                let closed_len = CLOSED.length;
+                for (let k = 0; k < closed_len; k++) {
+                    if (neighbour_node == closed_len[k]) {
+                        continue neighbour_loop;
+                    }
+                }
+
+                OPEN.push(neighbour_node);
+            }
+        }
+        CLOSED.push(current_node);
+
+        console.log(OPEN);
+        console.log(CLOSED);
         break;
     }
 }
@@ -95,30 +139,63 @@ function Node(x, y) {
 
 // calculate Heuristic (h) (how far from goal)
 // Diagonal distance allowed
-function heuristic(node, goal) {
-    dx = abs(node.x - goal.x);
-    dy = abs(node.y - goal.y);
-    return D * (dx + dy) + (D2 - 2 * D) * min(dx, dy);
+function heuristic(node, goal, diagonal) {
+    dx = Math.abs(node.x - goal.x);
+    dy = Math.abs(node.y - goal.y);
+    if (diagonal) {
+        return D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy);
+    }
+    else {
+        return D * (dx + dy);
+    }
 }
 
 // calculate (g) (how far from starting point)
-function gPath(node, start) {
-    dx = abs(node.x - start.x);
-    dy = abs(node.y - start.y);
-    return D * (dx + dy) + (D2 - 2 * D) * min(dx, dy);
+function gPath(node, start, diagonal) {
+    dx = Math.abs(node.x - start.x);
+    dy = Math.abs(node.y - start.y);
+    if (diagonal) {
+        return D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy);
+    }
+    else {
+        return D * (dx + dy);
+    }
 }
 
-// finding lowest F value in OPEN list
+// finding lowest F value in OPEN list, tie break by lower h value and then lowest g value
 // returning the node and removing it from OPEN list
 function LowestFValue(open_list) {
+    // smallest = [index, node]
+    // smallest_value = [f, h, g]
     let smallest = [0, open_list[0]];
+    let smallest_value = [open_list[0].f, open_list[0].h, open_list[0].g]
+
     list_len = open_list.length;
     for(let i = 0; i < list_len; i++) {
-        if (open_list[i] < smallest[1]) {
+        // compare f value
+        if (open_list[i].f < smallest_value[0]) {
             smallest[0] = i;
             smallest[1] = open_list[i];
+            smallest_value = [open_list[i].f, open_list[i].h, open_list[i].g];
+        }
+        // compare h when f are the same
+        else if (open_list[i].f == smallest_value[0]) {
+            if (open_list[i].h < smallest_value[1]) {
+                smallest[0] = i;
+                smallest[1] = open_list[i];
+                smallest_value = [open_list[i].f, open_list[i].h, open_list[i].g];
+            }
+            // compare g when f and h are the same
+            else if (open_list[i].h == smallest_value[1]) {
+                if (open_list[i].g < smallest_value[2]) {
+                    smallest[0] = i;
+                    smallest[1] = open_list[i];
+                    smallest_value = [open_list[i].f, open_list[i].h, open_list[i].g];
+                }
+            }
         }
     }
+    
     open_list.splice(smallest[0], 1);
     return smallest[1];
 }
