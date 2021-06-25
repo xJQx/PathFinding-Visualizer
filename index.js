@@ -49,21 +49,8 @@ Grids(20, 20);
 // f(n) = g(n) + h(n)
 // (h) represents vertices far from the goal
 // (g) represents vertices far from the starting point.
-function Astar(start, goal) {
+function Astar() {
     console.log('A* Pathfinding Algorithm');
-
-    // convert start and goal to nodes
-    [start_x, start_y] = convert(start);
-    [goal_x, goal_y] = convert(goal);
-
-    start = new Node(start_x, start_y);
-    start.color('blue');
-    
-    goal = new Node(goal_x, goal_y);
-    goal.color('orange');
-    
-    // put start into OPEN
-    OPEN.push(start);
 
     while (goal.x != start.x || goal.y != start.y) {
         let current_node = LowestFValue(OPEN);
@@ -75,6 +62,11 @@ function Astar(start, goal) {
                 // x and y co-ordinates of neighbour
                 let neighbour_x = current_node.x + i;
                 let neighbour_y = current_node.y + j;
+
+                // if neighbour node is the goal
+                if (neighbour_x == goal.x && neighbour_y == goal.y) {
+                    return Path(current_node);
+                }
                 
                 // make sure the neighbour exists and it is not the current node
                 if ((neighbour_x < 0 || neighbour_y < 0) || (neighbour_x == current_node.x && neighbour_y == current_node.y)) {
@@ -91,9 +83,12 @@ function Astar(start, goal) {
                     diagonal = true;
                 }
 
-                neighbour_node.h = heuristic(neighbour_node, goal, diagonal);
+                neighbour_node.h = 0.99 * heuristic(neighbour_node, goal, diagonal);
                 neighbour_node.g = gPath(neighbour_node, start, diagonal);
                 neighbour_node.f = neighbour_node.g + neighbour_node.h;
+
+                // add neighbour parent
+                neighbour_node.parent = [current_node.x, current_node.y];
 
                 // make sure neighbour not in CLOSED list
                 let closed_len = CLOSED.length;
@@ -137,14 +132,48 @@ function Astar(start, goal) {
 
         console.log(OPEN);
         console.log(CLOSED);
-
-        loop++;
-        if (loop == 13) {
-            break;
-        }
     }
 }
-Astar('1302', '0317');
+
+// obstacles
+let obstacle = new Node(7, 7);
+obstacle.color('black');
+CLOSED.push(obstacle);
+obstacle = new Node(7, 8);
+obstacle.color('black');
+CLOSED.push(obstacle);
+obstacle = new Node(7, 9);
+obstacle.color('black');
+CLOSED.push(obstacle);
+obstacle = new Node(8, 9);
+obstacle.color('black');
+CLOSED.push(obstacle);
+obstacle = new Node(9, 9);
+obstacle.color('black');
+CLOSED.push(obstacle);
+obstacle = new Node(10, 9);
+obstacle.color('black');
+CLOSED.push(obstacle);
+
+
+
+let start = '1302';
+let goal = '0317';
+
+// convert start and goal to nodes
+[start_x, start_y] = convert(start);
+[goal_x, goal_y] = convert(goal);
+
+start = new Node(start_x, start_y);
+start.color('blue');
+
+goal = new Node(goal_x, goal_y);
+goal.color('orange');
+
+// put start into OPEN
+OPEN.push(start);
+
+Astar();
 
 // for each node
 function Node(x, y) {
@@ -165,7 +194,7 @@ function Node(x, y) {
     this.h = 0;
 
     // pointer to parent
-    this.parent = 'n0';
+    this.parent = [0, 0];
 }
 
 // calculate Heuristic (h) (how far from goal)
@@ -238,4 +267,23 @@ function convert(id) {
     let y = int_id % 100;
     let x = Math.floor(int_id / 100) % 100;
     return [x, y];
-  }
+}
+
+// show path animation
+function Path(current_node) {
+    // base case
+    if (current_node.x == start.x && current_node.y == start.y) {
+        return;
+    }
+
+    current_node.color('green');
+    let [parent_x, parent_y] = current_node.parent;
+    
+    // loop through CLOSED list to find parent recursively
+    let closed_len = CLOSED.length;
+    for (let i = 0; i < closed_len; i++) {
+        if (parent_x == CLOSED[i].x && parent_y == CLOSED[i].y) {
+            Path(CLOSED[i]);
+        }
+    }
+}
