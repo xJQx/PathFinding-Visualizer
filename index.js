@@ -6,7 +6,7 @@ const D2 = 1;
 let OPEN = [];
 let CLOSED = [];
 
-
+let loop = 0;
 // grids
 function Grids(rows, cols) {
     let table = document.querySelector('#grids table');
@@ -88,7 +88,7 @@ function Astar(start, goal) {
                 let diagonal = false;
                 let temp = [i, j];
                 if (temp == [-1, -1] || temp == [-1, 1] || temp == [1, -1] || temp == [1, 1]) {
-                    diagoanl = true;
+                    diagonal = true;
                 }
 
                 neighbour_node.h = heuristic(neighbour_node, goal, diagonal);
@@ -98,19 +98,50 @@ function Astar(start, goal) {
                 // make sure neighbour not in CLOSED list
                 let closed_len = CLOSED.length;
                 for (let k = 0; k < closed_len; k++) {
-                    if (neighbour_node == closed_len[k]) {
+                    if (neighbour_node.x == CLOSED[k].x && neighbour_node.y == CLOSED[k].y) {
                         continue neighbour_loop;
                     }
                 }
 
+                // if neighbour is in OPEN
+                // check if new f is lower
+                let open_len = OPEN.length;
+                for (let w = 0; w < open_len; w++) {
+                    if (neighbour_node.x == OPEN[w].x && neighbour_node.y == OPEN[w].y) {
+                        if (neighbour_node.f < OPEN[w].f) {
+                            // remove old lower f value neighbour from OPEN
+                            OPEN[w].color('white');
+                            OPEN.splice(w, 1);
+                        }
+                        else {
+                            // if new f is higher or same, ignore this neighbour
+                            continue neighbour_loop;
+                        }
+                    }
+                }
+
+                // ignore neighbours that are start / goal
+                if (neighbour_node == start || neighbour_node == goal) {
+                    continue neighbour_loop;
+                }
+
+                neighbour_node.color('lightblue');
                 OPEN.push(neighbour_node);
             }
+        }
+        // change colors current node that is not start/goal
+        if (current_node.x != start.x && current_node.y != start.y) {
+            current_node.color('red');
         }
         CLOSED.push(current_node);
 
         console.log(OPEN);
         console.log(CLOSED);
-        break;
+
+        loop++;
+        if (loop == 13) {
+            break;
+        }
     }
 }
 Astar('1302', '0317');
@@ -195,7 +226,7 @@ function LowestFValue(open_list) {
             }
         }
     }
-    
+
     open_list.splice(smallest[0], 1);
     return smallest[1];
 }
