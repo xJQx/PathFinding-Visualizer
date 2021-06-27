@@ -45,17 +45,27 @@ function Grids(rows, cols) {
 const GRID_WIDTH = 20;
 const GRID_HEIGHT = 20;
 Grids(GRID_WIDTH, GRID_HEIGHT);
+
+// animation speed
+let speed = 2;
+
 let loop = 0;
 // A* Pathfinding Algorithm
 // f(n) = g(n) + h(n)
 // (h) represents vertices far from the goal
 // (g) represents vertices far from the starting point.
-function Astar() {
+async function Astar() {
     console.log('A* Pathfinding Algorithm');
 
     while (goal.x != start.x || goal.y != start.y) {
         let current_node = LowestFValue(OPEN);
         CLOSED.push(current_node);
+
+        // change colors current node that is not start/goal
+        if (current_node.x != start.x || current_node.y != start.y) {
+            current_node.color('red');
+            await wait();
+        }
 
         // caculate for neighbours
         for (let i = -1; i < 2; i++) {
@@ -116,6 +126,7 @@ function Astar() {
                             // remove old lower f value neighbour from OPEN
                             OPEN[w].color('white');
                             OPEN.splice(w, 1);
+                            await wait();
                             break;
                         }
                         else {
@@ -132,12 +143,10 @@ function Astar() {
 
                 neighbour_node.color('lightblue');
                 OPEN.push(neighbour_node);
+                await wait();
             }
         }
-        // change colors current node that is not start/goal
-        if (current_node.x != start.x || current_node.y != start.y) {
-            current_node.color('red');
-        }
+        
 
         console.log(OPEN);
         console.log(CLOSED);
@@ -311,13 +320,14 @@ function convert(id) {
 }
 
 // show path animation
-function Path(current_node) {
+async function Path(current_node) {
     // base case
     if (current_node.x == start.x && current_node.y == start.y) {
         return;
     }
 
     current_node.color('green');
+    await wait();
     let [parent_x, parent_y] = current_node.parent;
     
     // loop through CLOSED list to find parents recursively
@@ -327,6 +337,14 @@ function Path(current_node) {
             Path(CLOSED[i]);
         }
     }
+}
+
+function wait() {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve('resolved');
+        }, speed * 20);
+    });
 }
 
 document.querySelectorAll('td').forEach((td) => {
