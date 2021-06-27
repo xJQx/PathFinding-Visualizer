@@ -9,11 +9,12 @@ let CLOSED = [];
 // animation speed
 let speed = 0.1;
 
-// start and goal points
+// start point, goal point and obstacle button functions
 let start_point_count = 1;
 let goal_point_count = 1;
 let start_click_count = 0;
 let goal_click_count = 0;
+let obstacle_click_count = 0;
 
 // grids
 function Grids(rows, cols) {
@@ -398,6 +399,10 @@ function Buttons() {
                 if (goal_click_count != 0) {
                     document.querySelector('#goal-point').click();
                 }
+                // if obstacle button is enabled, disable it
+                if (obstacle_click_count != 0) {
+                    document.querySelector('#modify-obstacle').click();
+                }
 
                 start_click_count++;
                 start_point.style.backgroundColor = 'lightblue';
@@ -451,6 +456,10 @@ function Buttons() {
                 if (start_click_count != 0) {
                     document.querySelector('#start-point').click();
                 }
+                // if obstacle button is enabled, disable it
+                if (obstacle_click_count != 0) {
+                    document.querySelector('#modify-obstacle').click();
+                }
 
                 goal_click_count++;
                 goal_point.style.backgroundColor = 'orange';
@@ -488,6 +497,60 @@ function Buttons() {
         }
     }
 
+    function NewObstacleButton() {
+        let obstacle_button = document.querySelector('#modify-obstacle');
+
+        obstacle_button.onclick = () => {
+            // first click
+            if (obstacle_click_count == 0) {
+                // if start point button is enabled, disable it
+                if (start_click_count != 0) {
+                    document.querySelector('#start-point').click();
+                }
+                // if end point button is enabled, disable it
+                if (goal_click_count != 0) {
+                    document.querySelector('#goal-point').click();
+                }
+
+                obstacle_click_count++;
+                obstacle_button.style.backgroundColor = 'red';
+                document.querySelectorAll('td').forEach((td) => {
+                    td.addEventListener('click', obstacle_point_function);
+                });
+            }
+
+            // second click
+            else if (obstacle_click_count == 1) {
+                obstacle_click_count--;
+                obstacle_button.style.backgroundColor = 'lightgray';
+                document.querySelectorAll('td').forEach((td) => {
+                    td.removeEventListener('click', obstacle_point_function);
+                });
+            }
+        }
+
+        function obstacle_point_function() {
+            let [obstacle_x, obstacle_y] = convert(this.id);
+            
+            // check if obstacle exist, remove obstacle if it does
+            if (this.style.backgroundColor == 'black') {
+                let closed_len = CLOSED.length;
+                
+                for (let i = 0; i < closed_len; i++) {
+                    if (obstacle_x == CLOSED[i].x && obstacle_y == CLOSED[i].y) {
+                        CLOSED.splice(i, 1);
+                        break;
+                    }
+                }
+                this.style.backgroundColor = 'white';
+            }
+            else {
+                let obstacle = new Node(obstacle_x, obstacle_y);
+                obstacle.color('black');
+                CLOSED.push(obstacle);
+            }
+        }
+    }
 
     function AstarButton() {
         document.querySelector('#astar').onclick = () => {
@@ -501,6 +564,7 @@ function Buttons() {
     RandomBoardButton();
     StartPointButton();
     GoalPointButton();
+    NewObstacleButton();
     AstarButton();
 }
 Buttons();
