@@ -6,7 +6,6 @@ const D2 = 1;
 let OPEN = [];
 let CLOSED = [];
 
-let loop = 0;
 // grids
 function Grids(rows, cols) {
     let table = document.querySelector('#grids table');
@@ -43,8 +42,10 @@ function Grids(rows, cols) {
     })
 }
 
-Grids(20, 20);
-
+const GRID_WIDTH = 20;
+const GRID_HEIGHT = 20;
+Grids(GRID_WIDTH, GRID_HEIGHT);
+let loop = 0;
 // A* Pathfinding Algorithm
 // f(n) = g(n) + h(n)
 // (h) represents vertices far from the goal
@@ -54,6 +55,7 @@ function Astar() {
 
     while (goal.x != start.x || goal.y != start.y) {
         let current_node = LowestFValue(OPEN);
+        CLOSED.push(current_node);
 
         // caculate for neighbours
         for (let i = -1; i < 2; i++) {
@@ -62,6 +64,11 @@ function Astar() {
                 // x and y co-ordinates of neighbour
                 let neighbour_x = current_node.x + i;
                 let neighbour_y = current_node.y + j;
+
+                // if neighbour not on the grid
+                if (neighbour_x < 0 || neighbour_x >= GRID_WIDTH || neighbour_y < 0 || neighbour_y >= GRID_HEIGHT) {
+                    continue neighbour_loop;
+                }
 
                 // if neighbour node is the goal
                 if (neighbour_x == goal.x && neighbour_y == goal.y) {
@@ -73,22 +80,24 @@ function Astar() {
                     continue neighbour_loop;
                 }
 
-                // calculate neighbour node
+                // create neighbour node
                 let neighbour_node = new Node(neighbour_x, neighbour_y);
+
+                // add neighbour parent
+                neighbour_node.parent = [current_node.x, current_node.y];
 
                 // diagonal steps
                 let diagonal = false;
                 let temp = [i, j];
-                if (temp == [-1, -1] || temp == [-1, 1] || temp == [1, -1] || temp == [1, 1]) {
+                
+                if ((temp[0] == -1 && temp[1] == -1) || (temp[0] == -1 && temp[1] == 1) || (temp[0] == 1 && temp[1] == -1) || (temp[0] == 1 && temp[1] == 1)) {
+                    
                     diagonal = true;
                 }
 
-                neighbour_node.h = 0.99 * heuristic(neighbour_node, goal, diagonal);
-                neighbour_node.g = gPath(neighbour_node, start, diagonal);
+                neighbour_node.h = heuristic(neighbour_node, goal, diagonal);
+                neighbour_node.g = 0.5 * gCost(neighbour_node, start, diagonal);
                 neighbour_node.f = neighbour_node.g + neighbour_node.h;
-
-                // add neighbour parent
-                neighbour_node.parent = [current_node.x, current_node.y];
 
                 // make sure neighbour not in CLOSED list
                 let closed_len = CLOSED.length;
@@ -107,6 +116,7 @@ function Astar() {
                             // remove old lower f value neighbour from OPEN
                             OPEN[w].color('white');
                             OPEN.splice(w, 1);
+                            break;
                         }
                         else {
                             // if new f is higher or same, ignore this neighbour
@@ -125,13 +135,14 @@ function Astar() {
             }
         }
         // change colors current node that is not start/goal
-        if (current_node.x != start.x && current_node.y != start.y) {
+        if (current_node.x != start.x || current_node.y != start.y) {
             current_node.color('red');
         }
-        CLOSED.push(current_node);
 
         console.log(OPEN);
         console.log(CLOSED);
+        loop++;
+        
     }
 }
 
@@ -140,6 +151,15 @@ let obstacle = new Node(7, 7);
 obstacle.color('black');
 CLOSED.push(obstacle);
 obstacle = new Node(7, 8);
+obstacle.color('black');
+CLOSED.push(obstacle);
+obstacle = new Node(7, 6);
+obstacle.color('black');
+CLOSED.push(obstacle);
+obstacle = new Node(7, 5);
+obstacle.color('black');
+CLOSED.push(obstacle);
+obstacle = new Node(7, 4);
 obstacle.color('black');
 CLOSED.push(obstacle);
 obstacle = new Node(7, 9);
@@ -154,11 +174,14 @@ CLOSED.push(obstacle);
 obstacle = new Node(10, 9);
 obstacle.color('black');
 CLOSED.push(obstacle);
+obstacle = new Node(11, 9);
+obstacle.color('black');
+CLOSED.push(obstacle);
 
 
 
-let start = '1302';
-let goal = '0317';
+let start = '1004';
+let goal = '0917';
 
 // convert start and goal to nodes
 [start_x, start_y] = convert(start);
@@ -184,7 +207,6 @@ function Node(x, y) {
         let x_num = x;
         let y_num = y;
         let str_id = String(("0" + x_num).slice(-2)) + String(("0" + y_num).slice(-2));
-
         document.getElementById(`${str_id}`).style.backgroundColor = color;
     }
     
@@ -194,7 +216,7 @@ function Node(x, y) {
     this.h = 0;
 
     // pointer to parent
-    this.parent = [0, 0];
+    this.parent = [-1, -1];
 }
 
 // calculate Heuristic (h) (how far from goal)
@@ -203,23 +225,42 @@ function heuristic(node, goal, diagonal) {
     dx = Math.abs(node.x - goal.x);
     dy = Math.abs(node.y - goal.y);
     if (diagonal) {
-        return D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy);
+        return D * (dx + dy) * 1.01;
+        // D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy)
     }
     else {
         return D * (dx + dy);
     }
 }
 
-// calculate (g) (how far from starting point)
-function gPath(node, start, diagonal) {
+// calculate (g) (exact cost of the path from the starting point to any vertex n)
+function gCost(node, start, diagonal) {
+    let gcost = 0;
+
     dx = Math.abs(node.x - start.x);
     dy = Math.abs(node.y - start.y);
     if (diagonal) {
-        return D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy);
+        gcost += (D * (dx + dy) * 1.01);
     }
     else {
-        return D * (dx + dy);
+        gcost += (D * (dx + dy));
     }
+
+    
+    let [parent_x, parent_y] = node.parent;
+    
+    // loop through CLOSED list to find parent if the node has a parent
+    if (parent_x != -1 && parent_y != -1) {
+        let closed_len = CLOSED.length;
+        
+        for (let i = 0; i < closed_len; i++) {
+            if (parent_x == CLOSED[i].x && parent_y == CLOSED[i].y) {
+                gcost += CLOSED[i].g;
+            }
+        }
+    }
+    
+    return gcost;
 }
 
 // finding lowest F value in OPEN list, tie break by lower h value and then lowest g value
@@ -279,7 +320,7 @@ function Path(current_node) {
     current_node.color('green');
     let [parent_x, parent_y] = current_node.parent;
     
-    // loop through CLOSED list to find parent recursively
+    // loop through CLOSED list to find parents recursively
     let closed_len = CLOSED.length;
     for (let i = 0; i < closed_len; i++) {
         if (parent_x == CLOSED[i].x && parent_y == CLOSED[i].y) {
@@ -287,3 +328,10 @@ function Path(current_node) {
         }
     }
 }
+
+document.querySelectorAll('td').forEach((td) => {
+    td.onclick = () => {
+        alert('click');
+        console.log('click');
+    }
+});
