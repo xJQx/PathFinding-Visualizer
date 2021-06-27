@@ -6,6 +6,15 @@ const D2 = 1;
 let OPEN = [];
 let CLOSED = [];
 
+// animation speed
+let speed = 0.1;
+
+// start and goal points
+let start_point_count = 1;
+let goal_point_count = 1;
+let start_click_count = 0;
+let goal_click_count = 0;
+
 // grids
 function Grids(rows, cols) {
     let table = document.querySelector('#grids table');
@@ -46,10 +55,65 @@ const GRID_WIDTH = 20;
 const GRID_HEIGHT = 20;
 Grids(GRID_WIDTH, GRID_HEIGHT);
 
-// animation speed
-let speed = 2;
+// random Grid
+function RandomGrid() {
+    return String(("0" + Math.floor(Math.random() * 20)).slice(-2)) + String(("0" + Math.floor(Math.random() * 20)).slice(-2));
+}
 
-let loop = 0;
+// clear board
+function ClearBoard() {
+    document.querySelectorAll('td').forEach((td) => {
+        td.style.backgroundColor = 'white';
+    })
+
+    // clear OPEN and CLOSED lists
+    OPEN = [];
+    CLOSED = [];
+
+    // clear start and end point counts
+    start_point_count = 0;
+    end_point_count = 0;
+}
+
+// random board
+function RandomBoard() {
+    // clear board
+    ClearBoard();
+
+    // set start and goal points count
+    start_point_count = 1;
+    end_point_count = 1;
+    
+    // 250 obstacles
+    for (let i = 0; i < 251; i++) {
+        let obstacle = new Node(Math.floor(Math.random() * 20), Math.floor(Math.random() * 20));
+        obstacle.color('black');
+        CLOSED.push(obstacle);
+    }
+
+    // start point and goal point
+    start = RandomGrid();
+    goal = RandomGrid();
+
+    while (goal == start) {
+        goal = RandomGrid();
+    }
+
+    // convert start and goal to nodes
+    [start_x, start_y] = convert(start);
+    [goal_x, goal_y] = convert(goal);
+
+    start = new Node(start_x, start_y);
+    start.color('blue');
+
+    goal = new Node(goal_x, goal_y);
+    goal.color('orange');
+
+    // put start into OPEN
+    OPEN.push(start);
+}
+
+
 // A* Pathfinding Algorithm
 // f(n) = g(n) + h(n)
 // (h) represents vertices far from the goal
@@ -58,6 +122,11 @@ async function Astar() {
     console.log('A* Pathfinding Algorithm');
 
     while (goal.x != start.x || goal.y != start.y) {
+        // if no path available
+        if (OPEN.length == 0) {
+            alert('no path available!');
+            return;
+        }
         let current_node = LowestFValue(OPEN);
         CLOSED.push(current_node);
 
@@ -106,7 +175,7 @@ async function Astar() {
                 }
 
                 neighbour_node.h = heuristic(neighbour_node, goal, diagonal);
-                neighbour_node.g = 0.5 * gCost(neighbour_node, start, diagonal);
+                neighbour_node.g = gCost(neighbour_node, start, diagonal);
                 neighbour_node.f = neighbour_node.g + neighbour_node.h;
 
                 // make sure neighbour not in CLOSED list
@@ -146,66 +215,17 @@ async function Astar() {
                 await wait();
             }
         }
-        
-
-        console.log(OPEN);
-        console.log(CLOSED);
-        loop++;
-        
     }
 }
 
-// obstacles
-let obstacle = new Node(7, 7);
-obstacle.color('black');
-CLOSED.push(obstacle);
-obstacle = new Node(7, 8);
-obstacle.color('black');
-CLOSED.push(obstacle);
-obstacle = new Node(7, 6);
-obstacle.color('black');
-CLOSED.push(obstacle);
-obstacle = new Node(7, 5);
-obstacle.color('black');
-CLOSED.push(obstacle);
-obstacle = new Node(7, 4);
-obstacle.color('black');
-CLOSED.push(obstacle);
-obstacle = new Node(7, 9);
-obstacle.color('black');
-CLOSED.push(obstacle);
-obstacle = new Node(8, 9);
-obstacle.color('black');
-CLOSED.push(obstacle);
-obstacle = new Node(9, 9);
-obstacle.color('black');
-CLOSED.push(obstacle);
-obstacle = new Node(10, 9);
-obstacle.color('black');
-CLOSED.push(obstacle);
-obstacle = new Node(11, 9);
-obstacle.color('black');
-CLOSED.push(obstacle);
+// 250 obstacles
+for (let i = 0; i < 251; i++) {
+    let obstacle = new Node(Math.floor(Math.random() * 20), Math.floor(Math.random() * 20));
+    obstacle.color('black');
+    CLOSED.push(obstacle);
+}
 
-
-
-let start = '1004';
-let goal = '0917';
-
-// convert start and goal to nodes
-[start_x, start_y] = convert(start);
-[goal_x, goal_y] = convert(goal);
-
-start = new Node(start_x, start_y);
-start.color('blue');
-
-goal = new Node(goal_x, goal_y);
-goal.color('orange');
-
-// put start into OPEN
-OPEN.push(start);
-
-Astar();
+RandomBoard();
 
 // for each node
 function Node(x, y) {
@@ -234,7 +254,7 @@ function heuristic(node, goal, diagonal) {
     dx = Math.abs(node.x - goal.x);
     dy = Math.abs(node.y - goal.y);
     if (diagonal) {
-        return D * (dx + dy) * 1.01;
+        return D * (dx + dy) * 1.03;
         // D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy)
     }
     else {
@@ -249,7 +269,7 @@ function gCost(node, start, diagonal) {
     dx = Math.abs(node.x - start.x);
     dy = Math.abs(node.y - start.y);
     if (diagonal) {
-        gcost += (D * (dx + dy) * 1.01);
+        gcost += (D * (dx + dy) * 1.03);
     }
     else {
         gcost += (D * (dx + dy));
@@ -269,7 +289,7 @@ function gCost(node, start, diagonal) {
         }
     }
     
-    return gcost;
+    return 0.65 * gcost;
 }
 
 // finding lowest F value in OPEN list, tie break by lower h value and then lowest g value
@@ -339,6 +359,7 @@ async function Path(current_node) {
     }
 }
 
+// slow animation
 function wait() {
     return new Promise(resolve => {
         setTimeout(() => {
@@ -347,9 +368,139 @@ function wait() {
     });
 }
 
-document.querySelectorAll('td').forEach((td) => {
-    td.onclick = () => {
-        alert('click');
-        console.log('click');
+function Buttons() {
+    function SpeedButton() {
+        let button = document.querySelector('#speed');
+        button.addEventListener('change', () => {
+            speed = button.value;
+        })
     }
-});
+
+    function ClearBoardButton() {
+        document.querySelector('#clear-board').onclick = () => {
+            ClearBoard();
+        }
+    }
+
+    function RandomBoardButton() {
+        document.querySelector('#random-board').onclick = () => {
+            RandomBoard();
+        }
+    }
+
+    function StartPointButton() {
+        let start_point = document.querySelector('#start-point');
+        start_point.addEventListener('click', () => {
+            
+            // first click
+            if (start_click_count == 0) {
+                // if end point button is enabled, disable it
+                if (goal_click_count != 0) {
+                    document.querySelector('#goal-point').click();
+                }
+
+                start_click_count++;
+                start_point.style.backgroundColor = 'lightblue';
+                document.querySelectorAll('td').forEach((td) => {
+                    td.addEventListener('click', start_point_function);
+                });
+            }
+
+            // second click
+            else if (start_click_count == 1) {
+                start_click_count--;
+                start_point.style.backgroundColor = 'lightgray';
+                document.querySelectorAll('td').forEach((td) => {
+                    td.removeEventListener('click', start_point_function);
+                });
+            }
+        });
+
+        function start_point_function() {
+            if (start_point_count > 0) {
+                document.querySelectorAll('td').forEach((cell) => {
+                    // if starting point already chosen
+                    if (cell.style.backgroundColor == 'blue') {
+                        cell.style.backgroundColor = 'white';
+                        start_point_count = 0;
+                    }
+                })
+            }
+            start_point_count++;
+
+            start = this.id;
+            [start_x, start_y] = convert(start);
+            start = new Node(start_x, start_y);
+            start.color('blue');
+            
+            // remove old start point
+            OPEN = [];
+
+            // put start into OPEN
+            OPEN.push(start);
+        }
+    }
+
+    function GoalPointButton() {
+        let goal_point = document.querySelector('#goal-point');
+        goal_point.addEventListener('click', () => {
+            
+            // first click
+            if (goal_click_count == 0) {
+                // if start point button is enabled, disable it
+                if (start_click_count != 0) {
+                    document.querySelector('#start-point').click();
+                }
+
+                goal_click_count++;
+                goal_point.style.backgroundColor = 'orange';
+                document.querySelectorAll('td').forEach((td) => {
+                    td.addEventListener('click', goal_point_function);
+                });
+            }
+
+            // second click
+            else if (goal_click_count == 1) {
+                goal_click_count--;
+                goal_point.style.backgroundColor = 'lightgray';
+                document.querySelectorAll('td').forEach((td) => {
+                    td.removeEventListener('click', goal_point_function);
+                });
+            }
+        });
+
+        function goal_point_function() {
+            if (goal_point_count > 0) {
+                document.querySelectorAll('td').forEach((cell) => {
+                    // if starting point already chosen
+                    if (cell.style.backgroundColor == 'orange') {
+                        cell.style.backgroundColor = 'white';
+                        goal_point_count = 0;
+                    }
+                })
+            }
+            goal_point_count++;
+
+            goal = this.id;
+            [goal_x, goal_y] = convert(goal);
+            goal = new Node(goal_x, goal_y);
+            goal.color('orange');
+        }
+    }
+
+
+    function AstarButton() {
+        document.querySelector('#astar').onclick = () => {
+            Astar();
+        }
+    }
+
+    // call all the functions
+    SpeedButton();
+    ClearBoardButton()
+    RandomBoardButton();
+    StartPointButton();
+    GoalPointButton();
+    AstarButton();
+}
+Buttons();
