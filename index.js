@@ -7,7 +7,7 @@ let OPEN = [];
 let CLOSED = [];
 
 // animation speed
-let speed = 0.1;
+let speed = 0.0001;
 
 // start point, goal point and obstacle button functions
 let start_point_count = 1;
@@ -164,14 +164,13 @@ async function Astar() {
                 let neighbour_node = new Node(neighbour_x, neighbour_y);
 
                 // add neighbour parent
-                neighbour_node.parent = [current_node.x, current_node.y];
+                neighbour_node.parent = current_node;
 
                 // diagonal steps
                 let diagonal = false;
                 let temp = [i, j];
                 
                 if ((temp[0] == -1 && temp[1] == -1) || (temp[0] == -1 && temp[1] == 1) || (temp[0] == 1 && temp[1] == -1) || (temp[0] == 1 && temp[1] == 1)) {
-                    
                     diagonal = true;
                 }
 
@@ -192,7 +191,7 @@ async function Astar() {
                 let open_len = OPEN.length;
                 for (let w = 0; w < open_len; w++) {
                     if (neighbour_node.x == OPEN[w].x && neighbour_node.y == OPEN[w].y) {
-                        if (neighbour_node.f < OPEN[w].f) {
+                        if (neighbour_node.g < OPEN[w].g) {
                             // remove old lower f value neighbour from OPEN
                             OPEN[w].color('white');
                             OPEN.splice(w, 1);
@@ -255,7 +254,7 @@ function heuristic(node, goal, diagonal) {
     dx = Math.abs(node.x - goal.x);
     dy = Math.abs(node.y - goal.y);
     if (diagonal) {
-        return D * (dx + dy) * 1.03;
+        return D * (dx + dy) * 0.99;
         // D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy)
     }
     else {
@@ -270,25 +269,14 @@ function gCost(node, start, diagonal) {
     dx = Math.abs(node.x - start.x);
     dy = Math.abs(node.y - start.y);
     if (diagonal) {
-        gcost += (D * (dx + dy) * 1.03);
+        gcost += (D * (dx + dy) * 1.05);
     }
     else {
         gcost += (D * (dx + dy));
     }
 
     
-    let [parent_x, parent_y] = node.parent;
-    
-    // loop through CLOSED list to find parent if the node has a parent
-    if (parent_x != -1 && parent_y != -1) {
-        let closed_len = CLOSED.length;
-        
-        for (let i = 0; i < closed_len; i++) {
-            if (parent_x == CLOSED[i].x && parent_y == CLOSED[i].y) {
-                gcost += CLOSED[i].g;
-            }
-        }
-    }
+    gcost += node.parent.g;
     
     return 0.65 * gcost;
 }
@@ -311,14 +299,14 @@ function LowestFValue(open_list) {
         }
         // compare h when f are the same
         else if (open_list[i].f == smallest_value[0]) {
-            if (open_list[i].h < smallest_value[1]) {
+            if (open_list[i].g < smallest_value[2]) {
                 smallest[0] = i;
                 smallest[1] = open_list[i];
                 smallest_value = [open_list[i].f, open_list[i].h, open_list[i].g];
             }
             // compare g when f and h are the same
-            else if (open_list[i].h == smallest_value[1]) {
-                if (open_list[i].g < smallest_value[2]) {
+            else if (open_list[i].g == smallest_value[2]) {
+                if (open_list[i].h < smallest_value[1]) {
                     smallest[0] = i;
                     smallest[1] = open_list[i];
                     smallest_value = [open_list[i].f, open_list[i].h, open_list[i].g];
@@ -349,15 +337,7 @@ async function Path(current_node) {
 
     current_node.color('green');
     await wait();
-    let [parent_x, parent_y] = current_node.parent;
-    
-    // loop through CLOSED list to find parents recursively
-    let closed_len = CLOSED.length;
-    for (let i = 0; i < closed_len; i++) {
-        if (parent_x == CLOSED[i].x && parent_y == CLOSED[i].y) {
-            Path(CLOSED[i]);
-        }
-    }
+    Path(current_node.parent);
 }
 
 // slow animation
