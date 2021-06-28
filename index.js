@@ -122,6 +122,11 @@ function RandomBoard() {
 async function Astar() {
     console.log('A* Pathfinding Algorithm');
 
+    // check if there is a starting point and a goal point
+    if (!goal || !start) {
+        return alert('no start/goal');
+    }
+
     while (goal.x != start.x || goal.y != start.y) {
         // if no path available
         if (OPEN.length == 0) {
@@ -175,28 +180,33 @@ async function Astar() {
                 }
 
                 neighbour_node.h = heuristic(neighbour_node, goal, diagonal);
-                neighbour_node.g = gCost(neighbour_node, start, diagonal);
+                neighbour_node.g = gCost(neighbour_node, neighbour_node.parent, diagonal);
                 neighbour_node.f = neighbour_node.g + neighbour_node.h;
 
                 // make sure neighbour not in CLOSED list
                 let closed_len = CLOSED.length;
                 for (let k = 0; k < closed_len; k++) {
                     if (neighbour_node.x == CLOSED[k].x && neighbour_node.y == CLOSED[k].y) {
-                        continue neighbour_loop;
+                        if (neighbour_node.x == CLOSED[k].x && neighbour_node.y == CLOSED[k].y) {
+                            continue neighbour_loop;
+                        }
                     }
                 }
 
                 // if neighbour is in OPEN
-                // check if new f is lower
+                // check if new f and g are lower
                 let open_len = OPEN.length;
                 for (let w = 0; w < open_len; w++) {
                     if (neighbour_node.x == OPEN[w].x && neighbour_node.y == OPEN[w].y) {
-                        if (neighbour_node.g < OPEN[w].g) {
-                            // remove old lower f value neighbour from OPEN
-                            OPEN[w].color('white');
-                            OPEN.splice(w, 1);
-                            await wait();
-                            break;
+                        if (neighbour_node.f <= OPEN[w].f) {
+                            if (neighbour_node.g < OPEN[w].g) {
+                                // remove old lower f value neighbour from OPEN
+                                OPEN[w].color('white');
+                                OPEN.splice(w, 1);
+                                await wait();
+                                break;
+                            }
+                            continue neighbour_loop;
                         }
                         else {
                             // if new f is higher or same, ignore this neighbour
@@ -254,31 +264,28 @@ function heuristic(node, goal, diagonal) {
     dx = Math.abs(node.x - goal.x);
     dy = Math.abs(node.y - goal.y);
     if (diagonal) {
-        return D * (dx + dy) * 0.99;
+        return (Math.sqrt(dx ** 2 + dy ** 2));
         // D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy)
     }
     else {
-        return D * (dx + dy);
+        return (Math.sqrt(dx ** 2 + dy ** 2));
     }
 }
 
 // calculate (g) (exact cost of the path from the starting point to any vertex n)
-function gCost(node, start, diagonal) {
-    let gcost = 0;
+function gCost(node, parent, diagonal) {
+    let gcost = parent.g;
 
-    dx = Math.abs(node.x - start.x);
-    dy = Math.abs(node.y - start.y);
+    dx = Math.abs(node.x - parent.x);
+    dy = Math.abs(node.y - parent.y);
     if (diagonal) {
-        gcost += (D * (dx + dy) * 1.05);
+        gcost += (Math.sqrt(dx ** 2 + dy ** 2));
     }
     else {
-        gcost += (D * (dx + dy));
+        gcost += (Math.sqrt(dx ** 2 + dy ** 2));
     }
-
     
-    gcost += node.parent.g;
-    
-    return 0.65 * gcost;
+    return gcost;
 }
 
 // finding lowest F value in OPEN list, tie break by lower h value and then lowest g value
@@ -297,14 +304,14 @@ function LowestFValue(open_list) {
             smallest[1] = open_list[i];
             smallest_value = [open_list[i].f, open_list[i].h, open_list[i].g];
         }
-        // compare h when f are the same
+        // compare g when f are the same
         else if (open_list[i].f == smallest_value[0]) {
             if (open_list[i].g < smallest_value[2]) {
                 smallest[0] = i;
                 smallest[1] = open_list[i];
                 smallest_value = [open_list[i].f, open_list[i].h, open_list[i].g];
             }
-            // compare g when f and h are the same
+            // compare h when f and g are the same
             else if (open_list[i].g == smallest_value[2]) {
                 if (open_list[i].h < smallest_value[1]) {
                     smallest[0] = i;
@@ -388,18 +395,31 @@ function Buttons() {
                 start_point.style.backgroundColor = 'lightblue';
                 document.querySelectorAll('td').forEach((td) => {
                     td.addEventListener('click', start_point_function);
+                    td.addEventListener('mouseover', hoverColor);
                 });
             }
 
             // second click
             else if (start_click_count == 1) {
                 start_click_count--;
-                start_point.style.backgroundColor = 'lightgray';
+                start_point.setAttribute('style', '');
                 document.querySelectorAll('td').forEach((td) => {
                     td.removeEventListener('click', start_point_function);
+                    td.removeEventListener('mouseover', hoverColor);
                 });
             }
         });
+
+        function hoverColor() {
+            grid_color = this.style.backgroundColor;
+            this.style.backgroundColor = 'blue';
+            this.addEventListener('mouseout', hoverOff);
+
+            function hoverOff() {
+                this.style.backgroundColor = grid_color;
+                this.removeEventListener('mouseout', hoverOff);
+            };
+        }
 
         function start_point_function() {
             if (start_point_count > 0) {
@@ -423,6 +443,23 @@ function Buttons() {
 
             // put start into OPEN
             OPEN.push(start);
+
+            // if the block replaced is in CLOSED, remove it from CLOSED
+            let closed_len = CLOSED.length;
+            if (grid_color == 'black') {
+                for (let i = 0; i < closed_len; i++) {
+                    if (CLOSED[i].x == start_x && CLOSED[i].y == start_y) {
+                        CLOSED.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+            // if goal is replaced
+            else if (grid_color == 'orange') {
+                goal = null;
+            }
+
+            grid_color = 'blue';
         }
     }
 
@@ -445,18 +482,31 @@ function Buttons() {
                 goal_point.style.backgroundColor = 'orange';
                 document.querySelectorAll('td').forEach((td) => {
                     td.addEventListener('click', goal_point_function);
+                    td.addEventListener('mouseover', hoverColor);
                 });
             }
 
             // second click
             else if (goal_click_count == 1) {
                 goal_click_count--;
-                goal_point.style.backgroundColor = 'lightgray';
+                goal_point.setAttribute('style', '');
                 document.querySelectorAll('td').forEach((td) => {
                     td.removeEventListener('click', goal_point_function);
+                    td.removeEventListener('mouseover', hoverColor);
                 });
             }
         });
+
+        function hoverColor() {
+            grid_color = this.style.backgroundColor;
+            this.style.backgroundColor = 'orange';
+            this.addEventListener('mouseout', hoverOff);
+
+            function hoverOff() {
+                this.style.backgroundColor = grid_color;
+                this.removeEventListener('mouseout', hoverOff);
+            };
+        }
 
         function goal_point_function() {
             if (goal_point_count > 0) {
@@ -474,6 +524,7 @@ function Buttons() {
             [goal_x, goal_y] = convert(goal);
             goal = new Node(goal_x, goal_y);
             goal.color('orange');
+            grid_color = 'orange';
         }
     }
 
@@ -502,7 +553,7 @@ function Buttons() {
             // second click
             else if (obstacle_click_count == 1) {
                 obstacle_click_count--;
-                obstacle_button.style.backgroundColor = 'lightgray';
+                obstacle_button.setAttribute('style', '');
                 document.querySelectorAll('td').forEach((td) => {
                     td.removeEventListener('click', obstacle_point_function);
                 });
@@ -525,6 +576,13 @@ function Buttons() {
                 this.style.backgroundColor = 'white';
             }
             else {
+                // check if grid replaced is start or goal
+                if (this.style.backgroundColor == 'blue') {
+                    start = null;
+                }
+                else if (this.style.backgroundColor == 'orange') {
+                    goal = null;
+                }
                 let obstacle = new Node(obstacle_x, obstacle_y);
                 obstacle.color('black');
                 CLOSED.push(obstacle);
