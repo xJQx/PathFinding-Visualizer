@@ -11,22 +11,38 @@
     <body class="container-fluid" style="padding: 20px;">
         <h1>PathFinding Visualizer</h1>
         <br>
-        <div id="algorithms">
-            <button id='astar' class="button">A* PathFinding</button>
-        </div>
-        <br>
         <div id="buttons">
-            <button id="clear-board" class="button">Clear Board</button>
-            <button id='random-board' class="button">Random Board</button>
-            <button id='start-point' class="button">Starting Point</button>
-            <button id='goal-point' class="button">Goal</button>
-            <button id="modify-obstacle" class="button">Add/Remove Obstacle</button>
+            <div>
+                <button id='sample-board' class="button">Sample Board</button>
+                <button id='random-board' class="button">Random Board</button>
+                <button id="clear-board" class="button">Clear Board</button>
+                <button id='reset-board' class="button">Reset Board</button>
+            </div>
+            <div>
+                <button id='start-point' class="button">Starting Point</button>
+                <button id='goal-point' class="button">Goal</button>
+                <button id="modify-obstacle" class="button">Add/Remove Obstacle</button>
+            </div>
+            <div id="algorithms">
+            <button id='dijkstra' class="button">Dijkstra’s Algorithm</button>
+            <button id='greedy' class="button">Greedy Best First Search</button>
+            <button id='breadth' class="button">Breadth Best First Search</button>
+            <button id='astar' class="button">ASTAR</button>
+        </div>
         </div>
         <div id='sliders'>
-            <label for='speed'>Speed</label>
+            <label for='speed'>Visualisation Speed:</label>
             <input id='speed' type='range' min='0.1' max='10' step='0.1' value='0.1' class='slider'></input>
         </div>
         <br>
+        <div id='alert' class="alert alert-danger alert-dismissible fade show" role="alert" style='display: none;'>
+            <strong>No Path Available!</strong>
+            <button id='close' type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div id='alert2' class="alert alert-danger alert-dismissible fade show" role="alert" style='display: none;'>
+            <strong>No Start/Goal!</strong>
+            <button id='close2' type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
         <div id="grids">
             <table></table>
         </div>
