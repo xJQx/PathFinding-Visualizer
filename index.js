@@ -110,6 +110,16 @@ function RandomBoard() {
 
     // put start into OPEN
     OPEN.push(start);
+
+    // if goal is in CLOSED, remove it
+    let closed_len = CLOSED.length;
+    for (let i = 0; i < closed_len; i++) {
+        if (CLOSED[i].x == goal.x && CLOSED[i].y == goal.y) {
+            CLOSED.splice(i, 1);
+            closed_len--;
+            i--;
+        }
+    }
 }
 
 // reset board back to original
@@ -184,7 +194,7 @@ RandomBoard();
 // A* Pathfinding Algorithm
 // f(n) = g(n) + h(n)
 // (h) represents vertices far from the goal
-// (g) represents vertices far from the starting point.
+// (g) represents the exact cost of the path from the starting point to any vertex n
 async function Astar(open, closed) {
     console.log('A* Pathfinding Algorithm');
     DisableButtons();
@@ -308,7 +318,7 @@ async function Greedy(open, closed) {
     while (goal.x != start.x || goal.y != start.y) {
         // if no path available
         if (open.length == 0) {
-            alert('no path available!');
+            Alert();
             return EnableButtons();
         }
         
@@ -400,7 +410,7 @@ async function Breadth(open, closed) {
     while (goal.x != start.x || goal.y != start.y) {
         // if no path available
         if (open.length == 0) {
-            alert('no path available!');
+            Alert();
             return EnableButtons();
         }
         
@@ -443,14 +453,6 @@ async function Breadth(open, closed) {
                 // add neighbour parent
                 neighbour_node.parent = current_node;
 
-                // diagonal steps
-                let diagonal = false;
-                let temp = [i, j];
-                
-                if ((temp[0] == -1 && temp[1] == -1) || (temp[0] == -1 && temp[1] == 1) || (temp[0] == 1 && temp[1] == -1) || (temp[0] == 1 && temp[1] == 1)) {
-                    diagonal = true;
-                }
-
                 // make sure neighbour not in CLOSED list
                 let closed_len = closed.length;
                 for (let k = 0; k < closed_len; k++) {
@@ -475,6 +477,111 @@ async function Breadth(open, closed) {
     }
 }
 
+// Dijkstra's algorithm
+// find shortest path to each node from source (starting node)
+// g(n) cost
+async function Dijkstra(open, closed) {
+    console.log('Dijkstra Algorithm');
+    DisableButtons();
+
+    // check if there is a starting point and a goal point
+    if (!goal || !start) {
+        Alert2();
+        return EnableButtons();
+    }
+
+    while (goal.x != start.x || goal.y != start.y) {
+        // if no path available
+        if (open.length == 0) {
+            Alert();
+            return EnableButtons();
+        }
+        
+        let current_node = LowestGValue(open);
+        closed.push(current_node);
+
+        // check if current node is the goal (having min g cost in open list)
+        if (current_node.x == goal.x && current_node.y == goal.y) {
+            Path(current_node);
+            current_node.color('orange');
+            return EnableButtons();
+        }
+
+        // change colors current node that is not start
+        if (current_node.x != start.x || current_node.y != start.y) {
+            current_node.color('red');
+            await wait();
+        }
+
+        // caculate for neighbours
+        for (let i = -1; i < 2; i++) {
+            neighbour_loop:
+            for (let j = -1; j < 2; j++) {
+                // x and y co-ordinates of neighbour
+                let neighbour_x = current_node.x + i;
+                let neighbour_y = current_node.y + j;
+
+                // if neighbour not on the grid
+                if (neighbour_x < 0 || neighbour_x >= GRID_WIDTH || neighbour_y < 0 || neighbour_y >= GRID_HEIGHT) {
+                    continue neighbour_loop;
+                }
+                
+                // make sure the neighbour is not the current node
+                if (neighbour_x == current_node.x && neighbour_y == current_node.y) {
+                    continue neighbour_loop;
+                }
+
+                // create neighbour node
+                let neighbour_node = new Node(neighbour_x, neighbour_y);
+
+                // add neighbour parent
+                neighbour_node.parent = current_node;
+
+                // diagonal steps
+                let diagonal = false;
+                let temp = [i, j];
+                
+                if ((temp[0] == -1 && temp[1] == -1) || (temp[0] == -1 && temp[1] == 1) || (temp[0] == 1 && temp[1] == -1) || (temp[0] == 1 && temp[1] == 1)) {
+                    diagonal = true;
+                }
+
+                neighbour_node.g = gCost(neighbour_node, neighbour_node.parent, diagonal);
+
+                // make sure neighbour not in CLOSED list
+                let closed_len = closed.length;
+                for (let k = 0; k < closed_len; k++) {
+                    if (neighbour_node.x == closed[k].x && neighbour_node.y == closed[k].y) {
+                        continue neighbour_loop;
+                    }
+                }
+
+                // if neighbour in OPEN, check if new g is lower (more efficient path)
+                let open_len = open.length;
+                for (let w = 0; w < open_len; w++) {
+                    if (neighbour_node.x == open[w].x && neighbour_node.y == open[w].y) {
+                        if (neighbour_node.g < open[w].g) {
+                            open.splice(w, 1);
+                            neighbour_node.color('white');
+                            await wait();
+                            break;
+                        }
+                        else {
+                            continue neighbour_loop;
+                        }
+                    }
+                }
+
+                // change color if not goal
+                if (neighbour_node.x != goal.x || neighbour_node.y != goal.y) {
+                    neighbour_node.color('lightblue');
+                }
+
+                open.push(neighbour_node);
+                await wait();
+            }
+        }
+    }
+}
 
 // for each node
 function Node(x, y) {
@@ -585,6 +692,25 @@ function LowestHValue(open_list) {
     return smallest[1];
 }
 
+// find lowest g value in OPEN list
+// return node and remove from OPEN list
+function LowestGValue(open_list) {
+    // smallest = [index, node]
+    // lowest_g = g value
+    let smallest = [0, open_list[0]];
+    let lowest_g = open_list[0].g;
+
+    let open_len = open_list.length;
+    for (let i = 0; i < open_len; i++) {
+        if (open_list[i].g < lowest_g) {
+            lowest_g = open_list[i].g;
+            smallest[0] = i;
+            smallest[1] = open_list[i];
+        }
+    }
+    open_list.splice(smallest[0], 1);
+    return smallest[1];
+}
 
 // convert id from td to [x, y]
 function convert(id) {
@@ -733,6 +859,7 @@ function Buttons() {
                     if (CLOSED[i].x == start_x && CLOSED[i].y == start_y) {
                         CLOSED.splice(i, 1);
                         closed_len--;
+                        i--;
                     }
                 }
             }
@@ -825,6 +952,7 @@ function Buttons() {
                     if (CLOSED[i].x == goal_x && CLOSED[i].y == goal_y) {
                         CLOSED.splice(i, 1);
                         closed_len--;
+                        i--;
                     }
                 }
             }
@@ -901,6 +1029,7 @@ function Buttons() {
                         CLOSED[i].color('white');
                         CLOSED.splice(i, 1);
                         closed_len--;
+                        i--;
                     }
                 }
             }
@@ -978,6 +1107,25 @@ function Buttons() {
         }
     }
 
+    function DijkstraButton() {
+        document.querySelector('#dijkstra').onclick = () => {
+            let open = [];
+            let open_len = OPEN.length;
+            for (let i = 0; i < open_len; i++) {
+                open.push(OPEN[i]);
+            }
+            let closed = [];
+            let closed_len = CLOSED.length;
+            for (let i = 0; i < closed_len; i++) {
+                closed.push(CLOSED[i]);
+            }
+
+            if(ResetBoard()) {
+                Dijkstra(open, closed);
+            }
+        }
+    }
+
     // call all the functions
     SpeedButton();
 
@@ -993,6 +1141,7 @@ function Buttons() {
     AstarButton();
     GreedyButton();
     BreadthButton();
+    DijkstraButton();
 }
 Buttons();
 
