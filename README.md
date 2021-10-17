@@ -1,4 +1,4 @@
-## PathFinding-Visualizer
+## Pathfinding Algorithms Visualizer
 ### Live website: https://xjqx.github.io/PathFinding-Visualizer/
 ### Pathfinding Algorithms:
 - **Dijkstra’s Algorithm**
