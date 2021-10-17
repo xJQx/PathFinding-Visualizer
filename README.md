@@ -1,5 +1,5 @@
 ## PathFinding-Visualizer
-## https://xjqx.github.io/PathFinding-Visualizer/
+### Live website: https://xjqx.github.io/PathFinding-Visualizer/
 ### Pathfinding Algorithms:
 - **Dijkstra’s Algorithm**
 - **Greedy Best First Search**
